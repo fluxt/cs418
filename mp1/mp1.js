@@ -1,9 +1,6 @@
-'use strict';
 /**
- * @file A simple WebGL example drawing a triangle with colors
- * @author Eric Shaffer <shaffer1@eillinois.edu>
- * 
- * Updated Spring 2021 to use WebGL 2.0 and GLSL 3.00
+ * @file MP1: Dancing Logo
+ * @author Hwanseo Choi <hwanseo2@illinois.edu>
  */
 
 /** @global The WebGL context */
@@ -24,14 +21,24 @@ var vertexColorBuffer;
 /** @global The vertex array object for the triangle */
 var vertexArrayObject;
 
-/** @global The rotation angle of our triangle */
-var rotAngle = 0;
+/** @global The modelVertices array contains three floats for every traingle of the model */
+var modelVertices = [];
+
+/** @global The colors array contains four floats for every vertex of the model */
+var modelColors = [];
 
 /** @global The ModelView matrix contains any modeling and viewing transformations */
 var modelViewMatrix = glMatrix.mat4.create();
 
 /** @global Records time last frame was rendered */
 var previousTime = 0;
+
+/** @global The rotation angle of our triangle */
+var rotAngle = 0;
+
+/** @global The coordinate of mouse when it hovers over the cursor */
+var mouseX = 0;
+var mouseY = 0;
 
 
 /**
@@ -40,7 +47,7 @@ var previousTime = 0;
  * @return {Number} The radians that correspond to the degree input
  */
 function degToRad(degrees) {
-  return degrees * Math.PI / 180;
+        return degrees * Math.PI / 180;
 }
 
 
@@ -69,15 +76,15 @@ function createGLContext(canvas) {
  */
 function loadShaderFromDOM(id) {
   var shaderScript = document.getElementById(id);
-
+  
   // If we don't find an element with the specified id
   // we do an early exit 
   if (!shaderScript) {
     return null;
   }
-
+    
   var shaderSource = shaderScript.text;
-
+ 
   var shader;
   if (shaderScript.type == "x-shader/x-fragment") {
     shader = gl.createShader(gl.FRAGMENT_SHADER);
@@ -86,14 +93,14 @@ function loadShaderFromDOM(id) {
   } else {
     return null;
   }
-
+ 
   gl.shaderSource(shader, shaderSource);
   gl.compileShader(shader);
-
+ 
   if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
     alert(gl.getShaderInfoLog(shader));
     return null;
-  }
+  } 
   return shader;
 }
 
@@ -103,9 +110,9 @@ function loadShaderFromDOM(id) {
  */
 function setupShaders() {
   // Compile the shaders' source code.
-  var vertexShader = loadShaderFromDOM("shader-vs");
-  var fragmentShader = loadShaderFromDOM("shader-fs");
-
+  vertexShader = loadShaderFromDOM("shader-vs");
+  fragmentShader = loadShaderFromDOM("shader-fs");
+  
   // Link the shaders together into a program.
   shaderProgram = gl.createProgram();
   gl.attachShader(shaderProgram, vertexShader);
@@ -119,14 +126,14 @@ function setupShaders() {
   // We only use one shader program for this example, so we can just bind
   // it as the current program here.
   gl.useProgram(shaderProgram);
-
+    
   // Query the index of each attribute in the list of attributes maintained
   // by the GPU. 
   shaderProgram.vertexPositionAttribute =
     gl.getAttribLocation(shaderProgram, "aVertexPosition");
   shaderProgram.vertexColorAttribute =
     gl.getAttribLocation(shaderProgram, "aVertexColor");
-
+    
   //Get the index of the Uniform variable as well
   shaderProgram.modelViewMatrixUniform =
     gl.getUniformLocation(shaderProgram, "uModelViewMatrix");
@@ -137,49 +144,33 @@ function setupShaders() {
  * Set up the buffers to hold the triangle's vertex positions and colors.
  */
 function setupBuffers() {
-
   // Create the vertex array object, which holds the list of attributes for
   // the triangle.
   vertexArrayObject = gl.createVertexArray();
-  gl.bindVertexArray(vertexArrayObject);
+  gl.bindVertexArray(vertexArrayObject); 
 
   // Create a buffer for positions, and bind it to the vertex array object.
   vertexPositionBuffer = gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER, vertexPositionBuffer);
-
-  // Define a triangle in clip coordinates.
-  var vertices = [
-    0.0, 0.5, 0.0,
-    -0.5, -0.5, 0.0,
-    0.5, -0.5, 0.0
-  ];
-  // Populate the buffer with the position data.
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(modelVertices), gl.STATIC_DRAW);
   vertexPositionBuffer.itemSize = 3;
-  vertexPositionBuffer.numberOfItems = 3;
-
-  // Binds the buffer that we just made to the vertex position attribute.
-  gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute,
-    vertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
-
+  vertexPositionBuffer.numItems = modelVertices.length / 3;
+  gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, 
+                         vertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
+  
   // Do the same steps for the color buffer.
   vertexColorBuffer = gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER, vertexColorBuffer);
-  var colors = [
-    1.0, 0.0, 0.0, 1.0,
-    0.0, 1.0, 0.0, 1.0,
-    0.0, 0.0, 1.0, 1.0
-  ];
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(modelColors), gl.STATIC_DRAW);
   vertexColorBuffer.itemSize = 4;
-  vertexColorBuffer.numItems = 3;
-  gl.vertexAttribPointer(shaderProgram.vertexColorAttribute,
-    vertexColorBuffer.itemSize, gl.FLOAT, false, 0, 0);
+  vertexColorBuffer.numItems = modelColors.length / 4;
+  gl.vertexAttribPointer(shaderProgram.vertexColorAttribute, 
+                         vertexColorBuffer.itemSize, gl.FLOAT, false, 0, 0);
 
   // Enable each attribute we are using in the VAO.  
   gl.enableVertexAttribArray(shaderProgram.vertexPositionAttribute);
   gl.enableVertexAttribArray(shaderProgram.vertexColorAttribute);
-
+    
   // Unbind the vertex array object to be safe.
   gl.bindVertexArray(null);
 }
@@ -197,14 +188,14 @@ function draw() {
 
   // Use the vertex array object that we set up.
   gl.bindVertexArray(vertexArrayObject);
-
+    
   // Send the ModelView matrix with our transformations to the vertex shader.
   gl.uniformMatrix4fv(shaderProgram.modelViewMatrixUniform,
-    false, modelViewMatrix);
-
+                      false, modelViewMatrix);
+    
   // Render the triangle. 
-  gl.drawArrays(gl.TRIANGLES, 0, vertexPositionBuffer.numberOfItems);
-
+  gl.drawArrays(gl.TRIANGLES, 0, vertexPositionBuffer.numItems);
+  
   // Unbind the vertex array object to be safe.
   gl.bindVertexArray(null);
 }
@@ -227,14 +218,110 @@ function animate(currentTime) {
 
   // Update geometry to rotate 'speed' degrees per second.
   rotAngle += speed * deltaTime;
-  if (rotAngle > 360.0)
-    rotAngle = 0.0;
-  glMatrix.mat4.fromZRotation(modelViewMatrix, degToRad(rotAngle));
-  setupBuffers();
+
+  // These are the I shaped triangles
+  modelVertices = [
+    -0.4,  0.6,  0.0,
+    -0.4,  0.4,  0.0,
+     0.4,  0.6,  0.0,
+     0.4,  0.4,  0.0,
+    -0.4,  0.4,  0.0,
+     0.4,  0.6,  0.0,
+    -0.10, 0.4,  0.0,
+     0.10, 0.4,  0.0,
+    -0.10,-0.4,  0.0,
+     0.10,-0.4,  0.0,
+     0.10, 0.4,  0.0,
+    -0.10,-0.4,  0.0,
+    -0.4, -0.6,  0.0,
+    -0.4, -0.4,  0.0,
+     0.4, -0.6,  0.0,
+     0.4, -0.4,  0.0,
+    -0.4, -0.4,  0.0,
+     0.4, -0.6,  0.0,
+  ];
+
+  // generate urbana orange colors array for every vertex in the I
+  modelColors = [];
+  for (var i=0; i<modelVertices.length; i++) {
+    modelColors = modelColors.concat([232/256, 74/256, 39/256, 1.0]);
+  }
+
+  if (document.getElementById("logo").checked === true) {
+    // this is the affine transformation uniform variable for the view matrix
+    modelViewMatrix = glMatrix.mat4.create();
+    // tell the view matrix to follow the cursor
+    glMatrix.mat4.translate(modelViewMatrix, modelViewMatrix, glMatrix.vec3.fromValues(mouseX, mouseY, 0));
+    // tell the view matrix to rotate around the cursor
+    glMatrix.mat4.rotateZ(modelViewMatrix, modelViewMatrix, -degToRad(rotAngle));
+
+    // the translated i oscillates in circles around the cursor
+    // The radius oscillates, and the I is translated to the radius
+    var radius = 0.1 + 0.3 * Math.cos(degToRad(rotAngle*3));
+    var x = radius * Math.cos(degToRad(rotAngle));
+    var y = radius * Math.sin(degToRad(rotAngle));
+
+    // deep copy the modelVertices array to have two models
+    var modelVerticesCopy = Array.from(modelVertices);
+    // translate by x and y
+    for (var i=0; i<modelVerticesCopy.length/3; i++) {
+      modelVerticesCopy[i*3+0] = modelVertices[i*3+0]+x;
+      modelVerticesCopy[i*3+1] = modelVertices[i*3+1]+y;
+    }
+    // concatenate new model into old model
+    modelVertices = modelVertices.concat(modelVerticesCopy);
+    // concatenate colors for new model
+    for (var i=0; i<modelVerticesCopy.length; i++) {
+      modelColors = modelColors.concat([232/256, 74/256, 39/256, 1.0]);
+    }
+
+    modelVerticesCopy = Array.from(modelVertices);
+    // rotate around the transform
+    for (var i=0; i<modelVerticesCopy.length/3; i++) {
+      var vertex = glMatrix.vec3.fromValues(modelVerticesCopy[i*3+0],
+                                            modelVerticesCopy[i*3+1],
+                                            modelVerticesCopy[i*3+2]);
+      glMatrix.vec3.rotateZ(vertex, vertex, glMatrix.vec3.create(), degToRad(rotAngle)*Math.sqrt(2));
+      modelVerticesCopy[i*3+0] = vertex[0];
+      modelVerticesCopy[i*3+1] = vertex[1];
+      modelVerticesCopy[i*3+2] = vertex[2];
+    }
+
+    // concatenate new model and colors into old
+    modelVertices = modelVertices.concat(modelVerticesCopy);
+    for (var i=0; i<modelVerticesCopy.length; i++) {
+      modelColors = modelColors.concat([232/256, 74/256, 39/256, 1.0]);
+    }
+  }
+
+  if (document.getElementById("creative").checked === true) {
+    // reset view model to default
+    modelViewMatrix = glMatrix.mat4.create();
+
+    // clear the illini I vertices and colors
+    modelVertices = [];
+    modelColors = [];
+
+    // create concentric moving triangles. radius increases as rotAngle increases.
+    for (r=1.0+0.1*(rotAngle/30)%1; r>=0; r-=0.1){
+      // draw equilateral triangle with radius r
+      modelVertices = modelVertices.concat([                0,    r, 0]);
+      modelVertices = modelVertices.concat([-r*Math.sqrt(3)/2, -r/2, 0]);
+      modelVertices = modelVertices.concat([ r*Math.sqrt(3)/2, -r/2, 0]);
+  
+      // color them black, with a shade proportional to r
+      // as r increases, it gets brighter
+      modelColors = modelColors.concat([r, r, r, 1.0]);
+      modelColors = modelColors.concat([r, r, r, 1.0]);
+      modelColors = modelColors.concat([r, r, r, 1.0]);  
+    }
+  }
+
+  setupBuffers();     
 
   // Draw the frame.
   draw();
-
+  
   // Animate the next frame. The animate function is passed the current time in
   // milliseconds.
   requestAnimationFrame(animate);
@@ -244,13 +331,18 @@ function animate(currentTime) {
 /**
  * Startup function called from html code to start the program.
  */
-function startup() {
+ function startup() {
   console.log("Starting animation...");
   canvas = document.getElementById("myGLCanvas");
+  // modify mouseX and mouseY whenver mouse is moved on canvas
+  canvas.addEventListener('mousemove', (e) => {
+    mouseX = (e.offsetX-canvas.width/2)/(canvas.width/2);
+    mouseY = (-e.offsetY+canvas.height/2)/(canvas.height/2);
+  });
   gl = createGLContext(canvas);
-  setupShaders();
+  setupShaders(); 
   setupBuffers();
-  gl.clearColor(0.0, 0.0, 0.0, 1.0);
-  requestAnimationFrame(animate);
-}
+  gl.clearColor(1.0, 1.0, 1.0, 1.0);
 
+  requestAnimationFrame(animate); 
+}

@@ -1,11 +1,10 @@
-<!DOCTYPE HTML>
-<html lang="en">
-
+<!DOCTYPE HTML> 
+<html lang="en"> 
 <head>
-  <title>MP1</title>
-  <meta charset="utf-8">
+<title>Hello Animation</title>
+<meta charset="utf-8"> 
 </head>
-
+ 
 <script id="shader-vs" type="x-shader/x-vertex">#version 300 es
     #ifdef GL_FRAGMENT_PRECISION_HIGH
     precision highp float;
@@ -23,7 +22,7 @@
         vColor = aVertexColor;
     }
 </script>
-
+  
 <script id="shader-fs" type="x-shader/x-fragment">#version 300 es
     #ifdef GL_FRAGMENT_PRECISION_HIGH
     precision highp float;
@@ -39,15 +38,27 @@
     }
 </script>
 
-<script src="gl-matrix-min.js"></script>
-<script src="mp1.js"></script>
+<script src="gl-matrix-min.js"></script>  
+<script src="mp1.js"></script>  
 
-<body onload="startup();">
-  <canvas id="myGLCanvas" width="500" height="500"></canvas>
-  <div>
-    <label for="speed">Rotation speed</label>
-    <input type="range" id="speed" name="speed" min="0" max="100" value="5">
-  </div>
+<body onload="startup();" style="background-color: lightgrey;">
+  <canvas id="myGLCanvas" width="600" height="600"></canvas>
 </body>
+
+<p>Select an animation:</p>
+<div>
+  <input type="radio" id="logo" name="animation" value="logo" checked>
+  <label for="logo">Dancing Logo (hover mouse cursor on canvas)</label>
+</div>
+<div>
+  <input type="radio" id="creative" name="animation" value="creative">
+  <label for="creative">Concentric Triangles</label>
+</div>
+
+<p>All the animations will respond to animation speed.</p>
+<div>
+  <input type="range" id="speed" name="speed" min="0" max="100" value="60">
+  <label for="speed">Animation speed</label>
+</div>
 
 </html>
