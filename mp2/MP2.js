@@ -186,6 +186,10 @@ function startup() {
     mouseX = (e.offsetX-canvas.width/2)/(canvas.width/2);
     mouseY = (-e.offsetY+canvas.height/2)/(canvas.height/2);
   });
+  canvas.addEventListener('touchmove', (e) => {
+    mouseX = (e.offsetX-canvas.width/2)/(canvas.width/2);
+    mouseY = (-e.offsetY+canvas.height/2)/(canvas.height/2);
+  });
 
   requestAnimationFrame(animate);
 }
