@@ -51,6 +51,8 @@ var kEdgeBlack = [0.0, 0.0, 0.0];
 /** @global Edge color for white wireframe */
 var kEdgeWhite = [0.7, 0.7, 0.7];
 
+/** @global Zoom level from 0 to infinity changed by mouse wheel **/
+var zoom = 1.0;
 /** @global Mouse X location from -1 to 1 **/
 var mouseX = 0.5;
 /** @global Mouse Y location from -1 to 1 **/
@@ -153,7 +155,7 @@ void main(void) {
 
   // Sum up all three lighting components into the color for the vertex,
   // and send it to the fragment shader.
-  fragmentColor = vec4((  kAmbient * ambientLightColor
+  fragmentColor = vec4((  kAmbient * ambientLightColor * interpolatedColor.xyz
                       + kDiffuse * diffuseLightColor * diffuseWeight * interpolatedColor.xyz
                       + kSpecular * specularLightColor * specularWeight), 1.0);
 }
@@ -173,7 +175,7 @@ function startup() {
   setupShaders();
 
   // Let the Terrain object set up its own buffers.
-  myTerrain = new Terrain(64, -1, 1, -1, 1);
+  myTerrain = new Terrain(256, -1, 1, -1, 1);
   myTerrain.setupBuffers(shaderProgram);
 
   // Set the background color to sky blue (you can change this if you like).
@@ -186,9 +188,9 @@ function startup() {
     mouseX = (e.offsetX-canvas.width/2)/(canvas.width/2);
     mouseY = (-e.offsetY+canvas.height/2)/(canvas.height/2);
   });
-  canvas.addEventListener('touchmove', (e) => {
-    mouseX = (e.offsetX-canvas.width/2)/(canvas.width/2);
-    mouseY = (-e.offsetY+canvas.height/2)/(canvas.height/2);
+  canvas.addEventListener('wheel', (e) => {
+    zoom *= 1+e.deltaY*0.001;
+    zoom = Math.min(Math.max(1/8, zoom), 8);
   });
 
   requestAnimationFrame(animate);
@@ -302,7 +304,7 @@ function draw() {
 
   // spherical coordinates calculation (use ISO convention)
   // https://en.wikipedia.org/wiki/Spherical_coordinate_system
-  var r = 2.5; // distance
+  var r = 2.5 * zoom; // distance
   var phi = degToRad(-90-90*mouseX);
   var theta = degToRad(45+45*mouseY);
   var eyeX = r * Math.sin(theta) * Math.cos(phi);
