@@ -175,7 +175,7 @@ function startup() {
   setupShaders();
 
   // Let the Terrain object set up its own buffers.
-  myTerrain = new Terrain(256, -1, 1, -1, 1);
+  myTerrain = new Terrain(64, -1, 1, -1, 1);
   myTerrain.setupBuffers(shaderProgram);
 
   // Set the background color to sky blue (you can change this if you like).
