@@ -1,0 +1,38 @@
+<!DOCTYPE HTML> 
+<html lang="en"> 
+<head>
+<title>MP2: Terrain</title>
+<meta charset="utf-8"> 
+</head>
+
+<!-- If you add additional .js files, be sure to add them here. -->
+<script src="gl-matrix-min.js"></script>
+<script src="Terrain.js"></script>
+<script src="mp2.js"></script>
+
+<body onload="startup();">
+    <canvas id="glCanvas" width="1200" height="600"></canvas>
+
+    <p>Use arrow keys or WASDQE to orient. Use - or = key to decrease/increase speed. Use Escape key to reset.</p>
+    <p>A/D: Yaw Left/Right</p>
+    <p>W/S or ArrowUp/Down: Pitch Up/Down</p>
+    <p>Q/E or ArrowLeft/Right: Roll Left/Right</p>
+    <form id="input_form">
+        <fieldset>
+            <legend>Enable Fog</legend>
+            <div>
+                <input type="checkbox" name="fogEnabled" id="fogEnabled" checked> Fog
+            </div>
+        </fieldset>
+        <fieldset>
+            <legend>Rendering Options</legend>
+            <div>
+                <input type="radio" name="primitive" id="wireframe" value="wireframe"> Wireframe
+                <input type="radio" name="primitive" id="polygon" value="polygon" checked> Polygon
+                <input type="radio" name="primitive" id="wirepoly" value="wirepoly" > Polygon with Edges
+            </div>
+        </fieldset>
+    </form>
+</body>
+
+</html>
