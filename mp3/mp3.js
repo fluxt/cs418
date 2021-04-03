@@ -54,12 +54,16 @@ var kEdgeWhite = [0.7, 0.7, 0.7];
 /** @global Records time last frame was rendered */
 var previousTime = 0;
 
+/** @global set of keys down */
+var keysSet = new Set();
 /** @global the camera's current position */
 var camPosition = glMatrix.vec3.fromValues(-1.0, 0.0, 0.3);
 /** @global the camera's current orientation */
 var camOrientation = glMatrix.quat.create();
-/** @global the camera's current speed in the forward direction */
-var camSpeed = 0.02;
+/** @global the camera's current speed in the forward direction units per second */
+var camSpeed = 0.05;
+/** @global the camera's turning speed in degrees per second */
+var camTurnRate = 60;
 
 /**
  * Translates degrees to radians
@@ -198,8 +202,9 @@ function startup() {
 
   gl.enable(gl.DEPTH_TEST);
 
-  // modify mouseX and mouseY whenver mouse is moved on canvas
+  // handle keydown and keyup events
   document.addEventListener('keydown', handleKeyDown);
+  document.addEventListener('keyup', handleKeyUp);
 
   requestAnimationFrame(animate);
 }
@@ -422,71 +427,35 @@ function handleKeyDown(e) {
     case "d":
     case "q":
     case "e":
+      keysSet.add(e.key);
       break;
     default:
       return;
   }
+}
 
-  // normalize camOrientation to calculate local euler axes
-  glMatrix.quat.normalize(camOrientation, camOrientation);
-  // Forward Axis
-  var qQuat = glMatrix.quat.clone(camOrientation);
-  var pQuat = glMatrix.quat.fromValues(1.0, 0.0, 0.0, 0.0);
-  glMatrix.quat.multiply(pQuat, qQuat, pQuat);
-  glMatrix.quat.conjugate(qQuat, qQuat);
-  glMatrix.quat.multiply(pQuat, pQuat, qQuat);
-  var forwardAxis = glMatrix.vec3.fromValues(pQuat[0], pQuat[1], pQuat[2]);
-  glMatrix.vec3.normalize(forwardAxis, forwardAxis);
-
-  // Left Axis
-  var qQuat = glMatrix.quat.clone(camOrientation);
-  var pQuat = glMatrix.quat.fromValues(0.0, 1.0, 0.0, 0.0);
-  glMatrix.quat.multiply(pQuat, qQuat, pQuat);
-  glMatrix.quat.conjugate(qQuat, qQuat);
-  glMatrix.quat.multiply(pQuat, pQuat, qQuat);
-  var leftAxis = glMatrix.vec3.fromValues(pQuat[0], pQuat[1], pQuat[2]);
-  glMatrix.vec3.normalize(leftAxis, leftAxis);
-
-  // Up Axis
-  var qQuat = glMatrix.quat.clone(camOrientation);
-  var pQuat = glMatrix.quat.fromValues(0.0, 0.0, 1.0, 0.0);
-  glMatrix.quat.multiply(pQuat, qQuat, pQuat);
-  glMatrix.quat.conjugate(qQuat, qQuat);
-  glMatrix.quat.multiply(pQuat, pQuat, qQuat);
-  var upAxis = glMatrix.vec3.fromValues(pQuat[0], pQuat[1], pQuat[2]);
-  glMatrix.vec3.normalize(upAxis, upAxis);
-
-  // adjust camera orientation
+/**
+ * Handles Up Down Left Right WASDQE buttons for camera orientation quat
+ * @param {KeyboardEvent} e Keyup Event
+ */
+function handleKeyUp(e) {
+  // if none of the keys match, return
   switch (e.key) {
     case "ArrowUp":
     case "w":
-      var deltaCam = glMatrix.quat.setAxisAngle(glMatrix.quat.create(), leftAxis, degToRad(-5));
-      glMatrix.quat.multiply(camOrientation, deltaCam, camOrientation);
-      break;
     case "ArrowDown":
     case "s":
-      var deltaCam = glMatrix.quat.setAxisAngle(glMatrix.quat.create(), leftAxis, degToRad(5));
-      glMatrix.quat.multiply(camOrientation, deltaCam, camOrientation);
-      break;
     case "ArrowLeft":
     case "a":
-      var deltaCam = glMatrix.quat.setAxisAngle(glMatrix.quat.create(), forwardAxis, degToRad(-5));
-      glMatrix.quat.multiply(camOrientation, deltaCam, camOrientation);
-      break;
     case "ArrowRight":
     case "d":
-      var deltaCam = glMatrix.quat.setAxisAngle(glMatrix.quat.create(), forwardAxis, degToRad(5));
-      glMatrix.quat.multiply(camOrientation, deltaCam, camOrientation);
-      break;
     case "q":
-      var deltaCam = glMatrix.quat.setAxisAngle(glMatrix.quat.create(), upAxis, degToRad(5));
-      glMatrix.quat.multiply(camOrientation, deltaCam, camOrientation);
-      break;
     case "e":
-      var deltaCam = glMatrix.quat.setAxisAngle(glMatrix.quat.create(), upAxis, degToRad(-5));
-      glMatrix.quat.multiply(camOrientation, deltaCam, camOrientation);
+      keysSet.delete(e.key);
       break;
-    }
+    default:
+      return;
+  }
 }
 
 /**
@@ -526,6 +495,35 @@ function animate(currentTime) {
   // camPosition = camPosition + deltaTime * camLookDir;
   glMatrix.vec3.scale(camLookDir, camLookDir, deltaTime*camSpeed);
   glMatrix.vec3.add(camPosition, camPosition, camLookDir);
+
+  // calculate euler angles from keysSet
+  var eulerX = 0;
+  var eulerY = 0;
+  var eulerZ = 0;
+  if (keysSet.has("a") || keysSet.has("ArrowLeft")) {
+    eulerX -= deltaTime * camTurnRate;
+  }
+  if (keysSet.has("d") || keysSet.has("ArrowRight")) {
+    eulerX += deltaTime * camTurnRate;
+  }
+  if (keysSet.has("w") || keysSet.has("ArrowUp")) {
+    eulerY -= deltaTime * camTurnRate;
+  }
+  if (keysSet.has("s") || keysSet.has("ArrowDown")) {
+    eulerY += deltaTime * camTurnRate;
+  }
+  if (keysSet.has("q")) {
+    eulerZ += deltaTime * camTurnRate;
+  }
+  if (keysSet.has("e")) {
+    eulerZ -= deltaTime * camTurnRate;
+  }
+  console.log(deltaTime);
+
+  // turn orientation based on keypresses
+  var deltaCam = glMatrix.quat.create();
+  glMatrix.quat.fromEuler(deltaCam, eulerX, eulerY, eulerZ);
+  glMatrix.quat.multiply(camOrientation, camOrientation, deltaCam);
 
   // Animate the next frame.
   requestAnimationFrame(animate);
