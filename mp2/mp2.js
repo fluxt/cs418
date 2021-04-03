@@ -3,7 +3,7 @@
  * @author Ian Rudnick <itr2@illinois.edu>
  * @brief Starter code for CS 418 MP2 at the University of Illinois at
  * Urbana-Champaign.
- * 
+ *
  * Updated Spring 2021 for WebGL 2.0/GLSL 3.00 ES.
  */
 
@@ -34,7 +34,7 @@ var kDiffuse = [255/255, 255/255, 255/255];
 /** @global Specular material color/intensity for Phong reflection */
 var kSpecular = [255/255, 255/255, 255/255];
 /** @global Shininess exponent for Phong reflection */
-var shininess = 2;
+var shininess = 20;
 
 // Light parameters
 /** @global Light position in VIEW coordinates */
@@ -42,9 +42,9 @@ var lightPosition = [0, 2, 2];
 /** @global Ambient light color/intensity for Phong reflection */
 var ambientLightColor = [0.1, 0.1, 0.1];
 /** @global Diffuse light color/intensity for Phong reflection */
-var diffuseLightColor = [0.6, 0.6, 0.6];
+var diffuseLightColor = [0.5, 0.5, 0.5];
 /** @global Specular light color/intensity for Phong reflection */
-var specularLightColor = [0.3, 0.3, 0.3];
+var specularLightColor = [0.4, 0.4, 0.4];
 
 /** @global Edge color for black wireframe */
 var kEdgeBlack = [0.0, 0.0, 0.0];
@@ -131,24 +131,27 @@ uniform vec3 ambientLightColor;
 uniform vec3 diffuseLightColor;
 uniform vec3 specularLightColor;
 
+uniform bool fogEnabled;
+
 out vec4 fragmentColor;
 
 void main(void) {
   // Transform the vertex position and normal to view coordinates
   vec3 vertexPositionView =(modelViewMatrix * vec4(interpolatedPosition, 1.0)).xyz;
   vec3 vertexNormalView = normalize(normalMatrix * interpolatedNormal);
+  vec3 lightPositionView = (modelViewMatrix * vec4(lightPosition, 1.0)).xyz;
 
   // The camera is at the origin in view coordinates
   vec3 cameraPositionView = vec3(0.0, 0.0, 0.0);
-  
+
   // Calculate the three other vectors we need: l, r, and v
-  vec3 lightVector = normalize(lightPosition - vertexPositionView);
+  vec3 lightVector = normalize(lightPositionView - vertexPositionView);
   vec3 reflectionVector = normalize(reflect(-lightVector, vertexNormalView));
   vec3 viewVector = normalize(cameraPositionView - vertexPositionView);
 
   // Calculate diffuse light weighting: (n dot l)
   float diffuseWeight = max(dot(vertexNormalView, lightVector), 0.0);
-  
+
   // Calculate the specular light weighting: (r dot v)^(shininess)
   float rDotV = max(dot(reflectionVector, viewVector), 0.0);
   float specularWeight = pow(rDotV, shininess);
@@ -158,6 +161,15 @@ void main(void) {
   fragmentColor = vec4((  kAmbient * ambientLightColor * interpolatedColor.xyz
                       + kDiffuse * diffuseLightColor * diffuseWeight * interpolatedColor.xyz
                       + kSpecular * specularLightColor * specularWeight), 1.0);
+
+  // use LOG2 equation to calculate fog, from slides
+  if (fogEnabled) {
+    #define LOG2 1.442695
+    float fogDistance = length(vertexPositionView);
+    float fogAmount = 1.0 - exp2(-0.5 * 0.5 * fogDistance * fogDistance * LOG2);
+    fogAmount = clamp(fogAmount, 0.0, 1.0);
+    fragmentColor = fragmentColor * (1.0-fogAmount) + vec4(0.82, 0.93, 0.99, 1.0) * fogAmount;
+  }
 }
 `
 
@@ -225,7 +237,7 @@ function setupShaders() {
   if (!gl.getShaderParameter(vertexShader, gl.COMPILE_STATUS)) {
     alert(gl.getShaderInfoLog(vertexShader));
     return null;
-  } 
+  }
 
   fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
   gl.shaderSource(fragmentShader, shader_fs);
@@ -233,7 +245,7 @@ function setupShaders() {
   if (!gl.getShaderParameter(fragmentShader, gl.COMPILE_STATUS)) {
     alert(gl.getShaderInfoLog(fragmentShader));
     return null;
-  } 
+  }
 
 
   // Link the shaders together into a program.
@@ -275,7 +287,7 @@ function setupShaders() {
     gl.getUniformLocation(shaderProgram, "kSpecular");
   shaderProgram.locations.shininess =
     gl.getUniformLocation(shaderProgram, "shininess");
-  
+
   shaderProgram.locations.lightPosition =
     gl.getUniformLocation(shaderProgram, "lightPosition");
   shaderProgram.locations.ambientLightColor =
@@ -284,6 +296,9 @@ function setupShaders() {
   gl.getUniformLocation(shaderProgram, "diffuseLightColor");
   shaderProgram.locations.specularLightColor =
   gl.getUniformLocation(shaderProgram, "specularLightColor");
+
+  shaderProgram.locations.fogEnabled =
+  gl.getUniformLocation(shaderProgram, "fogEnabled");
 }
 
 /**
@@ -298,14 +313,14 @@ function draw() {
   // Generate the projection matrix using perspective projection.
   const near = 0.1;
   const far = 200.0;
-  glMatrix.mat4.perspective(projectionMatrix, degToRad(45), 
+  glMatrix.mat4.perspective(projectionMatrix, degToRad(45),
                             gl.viewportWidth / gl.viewportHeight,
                             near, far);
 
   // spherical coordinates calculation (use ISO convention)
   // https://en.wikipedia.org/wiki/Spherical_coordinate_system
   var r = 2.5 * zoom; // distance
-  var phi = degToRad(-90-90*mouseX);
+  var phi = degToRad(-90*mouseX);
   var theta = degToRad(45+45*mouseY);
   var eyeX = r * Math.sin(theta) * Math.cos(phi);
   var eyeY = r * Math.sin(theta) * Math.sin(phi);
@@ -320,14 +335,15 @@ function draw() {
   setMatrixUniforms();
   setLightUniforms(ambientLightColor, diffuseLightColor, specularLightColor,
                    lightPosition);
-  
+  gl.uniform1i(shaderProgram.locations.fogEnabled, document.getElementById("fogEnabled").checked);
+
   // Draw the triangles, the wireframe, or both, based on the render selection.
-  if (document.getElementById("polygon").checked) { 
+  if (document.getElementById("polygon").checked) {
     setMaterialUniforms(kAmbient, kDiffuse, kSpecular, shininess);
     myTerrain.drawTriangles();
   }
   else if (document.getElementById("wirepoly").checked) {
-    setMaterialUniforms(kAmbient, kDiffuse, kSpecular, shininess); 
+    setMaterialUniforms(kAmbient, kDiffuse, kSpecular, shininess);
     gl.enable(gl.POLYGON_OFFSET_FILL);
     gl.polygonOffset(1, 1);
     myTerrain.drawTriangles();
@@ -398,6 +414,6 @@ function setLightUniforms(a, d, s, loc) {
  function animate(currentTime) {
   // Draw the frame.
   draw();
-  // Animate the next frame. 
+  // Animate the next frame.
   requestAnimationFrame(animate);
 }

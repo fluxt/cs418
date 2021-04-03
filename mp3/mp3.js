@@ -468,25 +468,25 @@ function handleKeyDown(e) {
       var deltaCam = glMatrix.quat.setAxisAngle(glMatrix.quat.create(), leftAxis, degToRad(5));
       glMatrix.quat.multiply(camOrientation, deltaCam, camOrientation);
       break;
-    case "a":
-      var deltaCam = glMatrix.quat.setAxisAngle(glMatrix.quat.create(), upAxis, degToRad(5));
-      glMatrix.quat.multiply(camOrientation, deltaCam, camOrientation);
-      break;
-    case "d":
-      var deltaCam = glMatrix.quat.setAxisAngle(glMatrix.quat.create(), upAxis, degToRad(-5));
-      glMatrix.quat.multiply(camOrientation, deltaCam, camOrientation);
-      break;
     case "ArrowLeft":
-    case "q":
+    case "a":
       var deltaCam = glMatrix.quat.setAxisAngle(glMatrix.quat.create(), forwardAxis, degToRad(-5));
       glMatrix.quat.multiply(camOrientation, deltaCam, camOrientation);
       break;
     case "ArrowRight":
-    case "e":
+    case "d":
       var deltaCam = glMatrix.quat.setAxisAngle(glMatrix.quat.create(), forwardAxis, degToRad(5));
       glMatrix.quat.multiply(camOrientation, deltaCam, camOrientation);
       break;
-  }
+    case "q":
+      var deltaCam = glMatrix.quat.setAxisAngle(glMatrix.quat.create(), upAxis, degToRad(5));
+      glMatrix.quat.multiply(camOrientation, deltaCam, camOrientation);
+      break;
+    case "e":
+      var deltaCam = glMatrix.quat.setAxisAngle(glMatrix.quat.create(), upAxis, degToRad(-5));
+      glMatrix.quat.multiply(camOrientation, deltaCam, camOrientation);
+      break;
+    }
 }
 
 /**
