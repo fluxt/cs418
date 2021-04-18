@@ -30,11 +30,11 @@ var normalMatrix = glMatrix.mat3.create();
 
 // Material parameters
 /** @global Ambient material color/intensity for Phong reflection */
-var kAmbient = [227/255, 191/255, 76/255];
+var kAmbient = [255/255, 255/255, 255/255];
 /** @global Diffuse material color/intensity for Phong reflection */
-var kDiffuse = [227/255, 191/255, 76/255];
+var kDiffuse = [255/255, 255/255, 255/255];
 /** @global Specular material color/intensity for Phong reflection */
-var kSpecular = [227/255, 191/255, 76/255];
+var kSpecular = [255/255, 255/255, 255/255];
 /** @global Shininess exponent for Phong reflection */
 var shininess = 2;
 
@@ -44,9 +44,9 @@ var lightPosition = [0, 2, 2];
 /** @global Ambient light color/intensity for Phong reflection */
 var ambientLightColor = [0.1, 0.1, 0.1];
 /** @global Diffuse light color/intensity for Phong reflection */
-var diffuseLightColor = [1, 1, 1];
+var diffuseLightColor = [0.5, 0.5, 0.5];
 /** @global Specular light color/intensity for Phong reflection */
-var specularLightColor = [1, 1, 1];
+var specularLightColor = [0.4, 0.4, 0.4];
 
 /** @global Image texture to mapped onto mesh */
 var texture;
@@ -63,6 +63,14 @@ const up = glMatrix.vec3.fromValues(0.0, 1.0, 0.0);
 var kEdgeBlack = [0.0, 0.0, 0.0];
 /** @global Edge color for white wireframe */
 var kEdgeWhite = [0.7, 0.7, 0.7];
+
+/** @global Is a mouse button pressed? */
+var isDown = false;
+/** @global Mouse coordinates */
+var x = -1;
+var y = -1;
+/** @global Accumulated rotation around Y in degrees */
+var rotY = 0;
 
 /**
  * Translates degrees to radians
@@ -110,6 +118,25 @@ function startup() {
   gl.clearColor(0.82, 0.93, 0.99, 1.0);
 
   gl.enable(gl.DEPTH_TEST);
+
+  canvas.addEventListener('mousedown', e => {
+    x = e.offsetX;
+    y = e.offsetY;
+    isDown = true;
+  });
+  canvas.addEventListener('mousemove', e => {
+    if (isDown) {
+      rotY += e.offsetX-x;
+      x = e.offsetX;
+      y = e.offsetY;
+    }
+  });
+  canvas.addEventListener('mouseup', e => {
+    x = e.offsetX;
+    y = e.offsetY;
+    isDown = false;
+  });
+
   requestAnimationFrame(animate);
 }
 
@@ -219,6 +246,9 @@ function setupShaders() {
   gl.getUniformLocation(shaderProgram, "diffuseLightColor");
   shaderProgram.locations.specularLightColor =
   gl.getUniformLocation(shaderProgram, "specularLightColor");
+
+  shaderProgram.locations.uSampler =
+  gl.getUniformLocation(shaderProgram, "u_texture");
 }
 
 /**
@@ -256,11 +286,13 @@ function draw() {
   // Clear the color buffer and the depth buffer.
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
+  console.log(isDown, x, y, rotY);
+
   // Generate the view matrix using lookat.
   glMatrix.mat4.identity(modelViewMatrix);
+  glMatrix.mat4.rotateY(modelViewMatrix,myMesh.getModelTransform(),degToRad(rotY));
   glMatrix.mat4.lookAt(viewMatrix, eyePt, lookAtPt, up);
-  glMatrix.mat4.multiply(modelViewMatrix,  viewMatrix,myMesh.getModelTransform());
-
+  glMatrix.mat4.multiply(modelViewMatrix, viewMatrix, modelViewMatrix);
 
   setMatrixUniforms();
   setLightUniforms(ambientLightColor, diffuseLightColor, specularLightColor,
