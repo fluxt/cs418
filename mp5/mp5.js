@@ -58,15 +58,15 @@ function degToRad(degrees) {
  * Startup function called from the HTML code to start program.
  */
 function startup() {
-  setInterval(() => {
-    if (particles.length < 500) {
+  document.addEventListener("keypress", e => {
+    if (e.key === "q") {
+      particles.push(new Particle());
+      particles.push(new Particle());
       particles.push(new Particle());
     }
-  }, 10);
-  setInterval(() => {
-    particles = [];
-  }, 7000);
-
+    else if (e.key === "w") particles = [];
+  });
+  
   // Set up the canvas with a WebGL context.
   canvas = document.getElementById("glCanvas");
   gl = createGLContext(canvas);
@@ -245,7 +245,6 @@ function animate(currentTime) {
     sphere1.bindVAO();
     gl.drawArrays(gl.TRIANGLES, 0, sphere1.numTriangles*3);
     sphere1.unbindVAO();
-
   });
 
   // Use this function as the callback to animate the next frame.

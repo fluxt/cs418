@@ -9,14 +9,13 @@ class Particle {
             return Math.random() * (max - min) + min;
         }
 
-        // let's simulate a baseball on a moon.
         // box with xyz +- 2 meters
         this.boxSize = 2;
         // confined within box with xyz +- 2 meters
-        this.position = glMatrix.vec3.fromValues(0, randomNumber(0, 2), -1);
+        this.position = glMatrix.vec3.fromValues(randomNumber(-1, 1), randomNumber(0, 2), randomNumber(-1, 1));
         // 4 m/s = 14.4 km/h
         this.velocity = glMatrix.vec3.create();
-        glMatrix.vec3.random(this.velocity, 8);
+        glMatrix.vec3.random(this.velocity, 10);
         // drag force = dragCoefficient * v^2
         this.dragCoefficient = 0.05;
         // gravitational acceleration
@@ -33,7 +32,8 @@ class Particle {
 
     update(timeElapsed) {
         if (this.stopUpdating) return;
-        if (glMatrix.vec3.length(this.velocity) < 0.01) {
+        // if y axis potential energy times kinetic energy is below a threshold, stop updating
+        if (this.mass*-this.gravAcceleration[1]*(this.position[1]-this.radius+this.boxSize)+this.mass*this.velocity[1]*this.velocity[1]/2<1) {
             this.stopUpdating = true;
             return;
         }
@@ -54,6 +54,32 @@ class Particle {
         glMatrix.vec3.scale(newPosition, newVelocity, timeElapsed);
         glMatrix.vec3.add(newPosition, this.position, newPosition);
 
+        // find closest collision
+        let t = Infinity;
+        for (let xyz=0; xyz<3; xyz++) {
+            if (this.boxSize<newPosition[xyz]+this.radius) {
+                const tt = (this.boxSize-(this.position[xyz]+this.radius))/Math.abs(newVelocity[xyz]);
+                if (tt < t) {
+                    t = tt;
+                    newVelocity[xyz] *= -0.90;
+                }
+            }
+            if (newPosition[xyz]-this.radius<-this.boxSize) {
+                const tt = ((this.position[xyz]-this.radius)+this.boxSize)/Math.abs(newVelocity[xyz]);
+                if (tt < t) {
+                    t = tt;
+                    newVelocity[xyz] *= -0.90;
+                }
+            }
+        }
+        // if it collided, invert sign of wall collision and change position
+        if (t !== Infinity) {
+            glMatrix.vec3.scale(newPosition, newVelocity, t);
+            glMatrix.vec3.add(newPosition, this.position, newPosition);
+            timeElapsed -= t;
+        }
+
+        // update position
         glMatrix.vec3.copy(this.velocity, newVelocity);
         glMatrix.vec3.copy(this.position, newPosition);
     }
